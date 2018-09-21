@@ -29,6 +29,7 @@ import (
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/hns"
 	"github.com/containernetworking/plugins/pkg/ipam"
+	"github.com/containernetworking/plugins/plugins/main/windows"
 )
 
 type NetConf struct {
@@ -120,7 +121,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			Name:           epName,
 			VirtualNetwork: hnsNetwork.Id,
 			DNSServerList:  strings.Join(result.DNS.Nameservers, ","),
-			DNSSuffix:      strings.Join(result.DNS.Search, ","),
+			DNSSuffix:      strings.Join(windows.PatchKubernetesDNS(args.Args, result.DNS.Search), ","),
 			GatewayAddress: gw,
 			IPAddress:      ipAddr,
 			MacAddress:     macAddr,

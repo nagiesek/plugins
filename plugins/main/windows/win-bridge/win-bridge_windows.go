@@ -29,6 +29,7 @@ import (
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/hns"
 	"github.com/containernetworking/plugins/pkg/ipam"
+	"github.com/containernetworking/plugins/plugins/main/windows"
 )
 
 type NetConf struct {
@@ -65,6 +66,7 @@ func ProcessEndpointArgs(args *skel.CmdArgs, n *NetConf) (*hns.EndpointInfo, err
 	
 	// Convert whatever the IPAM result was into the current Result type
 	result, err := current.NewResultFromResult(r)
+	result.DNS = n.DNS
 	if err != nil {
 		errors.Annotatef(err, "error while NewResultFromResult")
 	} else {		
@@ -76,7 +78,8 @@ func ProcessEndpointArgs(args *skel.CmdArgs, n *NetConf) (*hns.EndpointInfo, err
 		
 		// Calculate gateway for bridge network (needs to be x.2)
 		epInfo.Gateway[len(epInfo.Gateway)-1] += 2
-		epInfo.DnsSuffix = strings.Join(result.DNS.Search, ",")
+		epInfo.DnsSuffix = strings.Join(windows.PatchKubernetesDNS(args.Args, result.DNS.Search), ",")
+		epInfo.Nameservers = result.DNS.Nameservers
 	}
 	
 	// NAT based on the the configured cluster network
