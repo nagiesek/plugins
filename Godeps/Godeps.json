@@ -13,8 +13,8 @@
 		},
 		{
 			"ImportPath": "github.com/Microsoft/hcsshim",
-			"Comment": "v0.7.4",
-			"Rev": "e44e499d29527b244d6858772f1b9090eeaddc4e"
+			"Comment": "v0.7.6",
+			"Rev": "a2dfd28944fb2ac50e97b016c05e61ecd3321c7d"
 		},
 		{
 			"ImportPath": "github.com/Microsoft/hcsshim/internal/guid",
