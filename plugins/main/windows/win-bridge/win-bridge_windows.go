@@ -107,8 +107,8 @@ func cmdHnsAdd(args *skel.CmdArgs, n *NetConf, cniVersion *string) error {
 	}
 
 	epName := hns.ConstructEndpointName(args.ContainerID, args.Netns, n.Name)
-	
-	hnsEndpoint, err := hns.ProvisionEndpoint(epName, hnsNetwork.Id, args.ContainerID, func() (*hcsshim.HNSEndpoint, error) {
+
+	hnsEndpoint, err := hns.ProvisionEndpoint(epName, hnsNetwork.Id, args.ContainerID, args.Netns, func() (*hcsshim.HNSEndpoint, error) {
 		epInfo, err := ProcessEndpointArgs(args, n)
 		epInfo.NetworkId = hnsNetwork.Id
 		if err != nil {

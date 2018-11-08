@@ -15,19 +15,19 @@
 package hns
 
 import (
-	"encoding/json"
-	"strings"
-	"github.com/Microsoft/hcsshim/hcn"
 	"bytes"
+	"encoding/json"
+	"github.com/Microsoft/hcsshim/hcn"
 	"github.com/buger/jsonparser"
 	"github.com/containernetworking/cni/pkg/types"
+	"strings"
 )
 
 // NetConf is the CNI spec
 type NetConf struct {
 	types.NetConf
-	HcnPolicyArgs        []hcn.EndpointPolicy   `json:"HcnPolicyArgs,omitempty"`
-	Policies []policy `json:"policies,omitempty"`
+	HcnPolicyArgs []hcn.EndpointPolicy `json:"HcnPolicyArgs,omitempty"`
+	Policies      []policy             `json:"policies,omitempty"`
 }
 
 type policy struct {

@@ -1,4 +1,3 @@
-
 // Copyright 2017 CNI authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,13 +30,13 @@ const (
 )
 
 type EndpointInfo struct {
-	EndpointName     string
-	DnsSuffix        string
-	NetworkName      string
-	NetworkId        string
-	Gateway          net.IP
-	IpAddress        net.IP
-	Nameservers      []string
+	EndpointName string
+	DnsSuffix    string
+	NetworkName  string
+	NetworkId    string
+	Gateway      net.IP
+	IpAddress    net.IP
+	Nameservers  []string
 }
 
 // GetSandboxContainerID returns the sandbox ID of this pod
@@ -65,7 +64,7 @@ func GenerateHnsEndpoint(epInfo *EndpointInfo, n *NetConf) *hcsshim.HNSEndpoint 
 			errors.Annotatef(err, "[win-cni] Found existing endpoint %v", epInfo.EndpointName)
 		}
 	} else {
-		
+
 		hnsEndpoint = &hcsshim.HNSEndpoint{
 			Name:           epInfo.EndpointName,
 			VirtualNetwork: epInfo.NetworkId,
@@ -94,38 +93,38 @@ func GenerateHcnEndpoint(epInfo *EndpointInfo, n *NetConf) *hcn.HostComputeEndpo
 			errors.Annotatef(err, "[win-cni] Found existing endpoint %v", epInfo.EndpointName)
 		}
 	} else {
-		
+
 		routes := []hcn.Route{
 			hcn.Route{
-			NextHop: epInfo.Gateway.String(),
-			DestinationPrefix: 		func() string {
-			destinationPrefix := "0.0.0.0/0"
-				if ipv6 := epInfo.Gateway.To4(); ipv6 == nil {
-					destinationPrefix = "::/0"
-				}
-				return destinationPrefix
-			}(),   
+				NextHop: epInfo.Gateway.String(),
+				DestinationPrefix: func() string {
+					destinationPrefix := "0.0.0.0/0"
+					if ipv6 := epInfo.Gateway.To4(); ipv6 == nil {
+						destinationPrefix = "::/0"
+					}
+					return destinationPrefix
+				}(),
 			},
 		}
-			
+
 		hcnDns := hcn.Dns{
 			Suffix:     epInfo.DnsSuffix,
 			ServerList: epInfo.Nameservers,
 		}
 
 		hcnIpConfig := hcn.IpConfig{
-			IpAddress:  epInfo.IpAddress.String(),
+			IpAddress: epInfo.IpAddress.String(),
 		}
 		ipConfigs := []hcn.IpConfig{hcnIpConfig}
-		
+
 		hcnEndpoint = &hcn.HostComputeEndpoint{
-			SchemaVersion: hcn.Version{Major: 2,},
-			Name:                epInfo.EndpointName,
-			HostComputeNetwork:  epInfo.NetworkId,
-		    Dns:                 hcnDns,
-		    Routes:              routes,
-			IpConfigurations:    ipConfigs,
-			Policies:            func() []hcn.EndpointPolicy {
+			SchemaVersion:      hcn.Version{Major: 2},
+			Name:               epInfo.EndpointName,
+			HostComputeNetwork: epInfo.NetworkId,
+			Dns:                hcnDns,
+			Routes:             routes,
+			IpConfigurations:   ipConfigs,
+			Policies: func() []hcn.EndpointPolicy {
 				if n.HcnPolicyArgs == nil {
 					n.HcnPolicyArgs = []hcn.EndpointPolicy{}
 				}
@@ -137,7 +136,6 @@ func GenerateHcnEndpoint(epInfo *EndpointInfo, n *NetConf) *hcn.HostComputeEndpo
 	}
 	return hcnEndpoint
 }
-
 
 // ConstructEndpointName constructs enpointId which is used to identify an endpoint from HNS
 // There is a special consideration for netNs name here, which is required for Windows Server 1709
@@ -179,7 +177,18 @@ type EndpointMakerFunc func() (*hcsshim.HNSEndpoint, error)
 // ProvisionEndpoint provisions an endpoint to a container specified by containerID.
 // If an endpoint already exists, the endpoint is reused.
 // This call is idempotent
-func ProvisionEndpoint(epName string, expectedNetworkId string, containerID string, makeEndpoint EndpointMakerFunc) (*hcsshim.HNSEndpoint, error) {
+func ProvisionEndpoint(epName string, expectedNetworkId string, containerID string, netns string, makeEndpoint EndpointMakerFunc) (*hcsshim.HNSEndpoint, error) {
+	if len(netns) == 0 {
+		return nil, nil
+	}
+
+	if netns != pauseContainerNetNS {
+		_, err := hcsshim.GetHNSEndpointByName(epName)
+		if err != nil {
+			return nil, errors.Annotatef(err, "failed to find HNSEndpoint %s", epName)
+		}
+	}
+
 	// check if endpoint already exists
 	createEndpoint := true
 	hnsEndpoint, err := hcsshim.GetHNSEndpointByName(epName)
@@ -236,7 +245,7 @@ func AddHcnEndpoint(epName string, expectedNetworkId string, namespace string,
 		if hcnEndpoint, err = makeEndpoint(); err != nil {
 			return nil, errors.Annotate(err, "failed to make a new HNSEndpoint")
 		}
-		
+
 		if hcnEndpoint, err = hcnEndpoint.Create(); err != nil {
 			return nil, errors.Annotate(err, "failed to create the new HNSEndpoint")
 		}
@@ -281,7 +290,7 @@ func ConstructResult(hnsNetwork *hcsshim.HNSNetwork, hnsEndpoint *hcsshim.HNSEnd
 	return result, nil
 }
 
-// This verison follows the v2 workflow of removing the endpoint from the namespace and deleting it 
+// This verison follows the v2 workflow of removing the endpoint from the namespace and deleting it
 func RemoveHcnEndpoint(epName string) error {
 	hcnEndpoint, err := hcn.GetEndpointByName(epName)
 	if err != nil {
@@ -337,4 +346,3 @@ func ConstructHcnResult(hcnNetwork *hcn.HostComputeNetwork, hcnEndpoint *hcn.Hos
 
 	return result, nil
 }
-
