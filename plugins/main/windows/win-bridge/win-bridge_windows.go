@@ -38,6 +38,8 @@ type NetConf struct {
 	ApiVersion      int       `json:"ApiVersion"`
 }
 
+
+
 func init() {
 	// this ensures that main runs only on main thread (thread group leader).
 	// since namespace ops (unshare, setns) are done for a single thread, we
@@ -83,8 +85,10 @@ func ProcessEndpointArgs(args *skel.CmdArgs, n *NetConf) (*hns.EndpointInfo, err
 		n.ApplyOutboundNatPolicy(n.IPMasqNetwork)
 	}
 
-	epInfo.DnsSearch = n.DNS.Search	
-	epInfo.Nameservers = n.DNS.Nameservers
+	dnsInfo := n.DNS
+	hns.ModifyDnsForK8s(&dnsInfo, args)
+	epInfo.DnsSearch = dnsInfo.Search	
+	epInfo.Nameservers = dnsInfo.Nameservers
 
 	return epInfo, err
 }
