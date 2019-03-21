@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+	"os"
 
 	"github.com/juju/errors"
 	"github.com/Microsoft/hcsshim"
@@ -90,7 +91,7 @@ func ProcessEndpointArgs(args *skel.CmdArgs, n *NetConf) (*hns.EndpointInfo, err
 }
 
 func cmdHnsAdd(args *skel.CmdArgs, n *NetConf, cniVersion *string) error {
-
+	success := false
 	networkName := n.Name
 	hnsNetwork, err := hcsshim.GetHNSNetworkByName(networkName)
 	if err != nil {
@@ -119,6 +120,13 @@ func cmdHnsAdd(args *skel.CmdArgs, n *NetConf, cniVersion *string) error {
 		}
 		return hnsEndpoint, nil
 	})
+	defer func() {
+		if !success {
+			os.Setenv("CNI_COMMAND", "DEL")
+			ipam.ExecDel(n.IPAM.Type, args.StdinData)
+			os.Setenv("CNI_COMMAND", "ADD")
+		}
+	}()
 	if err != nil {
 		return errors.Annotatef(err, "error while ProvisionEndpoint(%v,%v,%v)", epName, hnsNetwork.Id, args.ContainerID)
 	}
@@ -128,11 +136,13 @@ func cmdHnsAdd(args *skel.CmdArgs, n *NetConf, cniVersion *string) error {
 		return errors.Annotatef(err, "error while constructResult")
 	}
 
+	success = true
 	return types.PrintResult(result, *cniVersion)
 
 }
 
 func cmdHcnAdd(args *skel.CmdArgs, n *NetConf, cniVersion *string) error {
+	success := false
 	networkName := n.Name
 	hcnNetwork, err := hcn.GetNetworkByName(networkName)
 	if err != nil {
@@ -162,6 +172,13 @@ func cmdHcnAdd(args *skel.CmdArgs, n *NetConf, cniVersion *string) error {
 		}
 		return hcnEndpoint, nil
 	})
+	defer func() {
+		if !success {
+			os.Setenv("CNI_COMMAND", "DEL")
+			ipam.ExecDel(n.IPAM.Type, args.StdinData)
+			os.Setenv("CNI_COMMAND", "ADD")
+		}
+	}()
 	if err != nil {
 		return errors.Annotatef(err, "error while AddHcnEndpoint(%v,%v,%v)", epName, hcnNetwork.Id, args.Netns)
 	}
@@ -171,6 +188,7 @@ func cmdHcnAdd(args *skel.CmdArgs, n *NetConf, cniVersion *string) error {
 		return errors.Annotatef(err, "error while ConstructHcnResult")
 	}
 
+	success = true
 	return types.PrintResult(result, *cniVersion)
 }
 
