@@ -164,7 +164,7 @@ func cmdDel(args *skel.CmdArgs) error {
 	epName := hns.ConstructEndpointName(args.ContainerID, args.Netns, n.Name)
 
 	err = hns.DeprovisionEndpoint(epName, args.Netns, args.ContainerID)
-	return nil
+	return err
 }
 
 func cmdGet(_ *skel.CmdArgs) error {
