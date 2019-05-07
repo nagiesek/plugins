@@ -77,6 +77,7 @@ func GenerateHnsEndpoint(epInfo *EndpointInfo, n *NetConf) (*hcsshim.HNSEndpoint
 		}
 	}
 
+	n.ApplyOptionalArgs(&epInfo.IpAddress)
 	if hnsEndpoint == nil {
 		hnsEndpoint = &hcsshim.HNSEndpoint{
 			Name:           epInfo.EndpointName,
@@ -118,13 +119,7 @@ func GenerateHcnEndpoint(epInfo *EndpointInfo, n *NetConf) (*hcn.HostComputeEndp
 		routes := []hcn.Route{
 			{
 				NextHop: GetIpString(&epInfo.Gateway),
-				DestinationPrefix: func() string {
-					destinationPrefix := "0.0.0.0/0"
-					if ipv6 := epInfo.Gateway.To4(); ipv6 == nil {
-						destinationPrefix = "::/0"
-					}
-					return destinationPrefix
-				}(),
+				DestinationPrefix: GetDefaultDestinationPrefix(&epInfo.Gateway),
 			},
 		}
 
@@ -138,6 +133,7 @@ func GenerateHcnEndpoint(epInfo *EndpointInfo, n *NetConf) (*hcn.HostComputeEndp
 		}
 		ipConfigs := []hcn.IpConfig{hcnIpConfig}
 
+		n.ApplyOptionalArgs(&epInfo.IpAddress)
 		hcnEndpoint = &hcn.HostComputeEndpoint{
 			SchemaVersion:      hcn.Version{Major: 2},
 			Name:               epInfo.EndpointName,

@@ -119,7 +119,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}
 
 		result.DNS = n.GetDNS()
-
+		n.ApplyOptionalArgs(&ipAddr)
 		hnsEndpoint := &hcsshim.HNSEndpoint{
 			Name:           epName,
 			VirtualNetwork: hnsNetwork.Id,
