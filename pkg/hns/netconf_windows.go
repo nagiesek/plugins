@@ -17,6 +17,9 @@ package hns
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"net"
+	
 	"github.com/Microsoft/hcsshim/hcn"
 	"github.com/buger/jsonparser"
 	"github.com/containernetworking/cni/pkg/types"
@@ -26,9 +29,15 @@ import (
 // NetConf is the CNI spec
 type NetConf struct {
 	types.NetConf
+	ApiVersion    int    `json:"ApiVersion"`
 	HcnPolicyArgs []hcn.EndpointPolicy `json:"HcnPolicyArgs,omitempty"`
 	Policies      []policy             `json:"policies,omitempty"`
 	RuntimeConfig RuntimeConfig        `json:"runtimeConfig"`
+	OptionalFlags OptionalFlags        `json:"optionalFlags"`
+}
+
+type OptionalFlags struct {
+	LoopbackDSR bool `json:"loopbackDSR"`
 }
 
 type RuntimeDNS struct {
@@ -43,6 +52,40 @@ type RuntimeConfig struct {
 type policy struct {
 	Name  string          `json:"name"`
 	Value json.RawMessage `json:"value"`
+}
+
+
+func GetDefaultDestinationPrefix(ip *net.IP) string {
+	destinationPrefix := "0.0.0.0/0"
+	if ipv6 := ip.To4(); ipv6 == nil {
+		destinationPrefix = "::/0"
+	}
+	return destinationPrefix
+}
+
+
+func (n *NetConf) applyLoopbackDSR(ip *net.IP) {
+	value := fmt.Sprintf(`"Destinations" : ["%s/32"]`, ip.String())
+	if n.ApiVersion == 2 {
+		hcnLoopbackRoute := hcn.EndpointPolicy{
+			Type: "OutBoundNAT",
+			Settings: []byte(fmt.Sprintf("{%s}", value)),
+		}
+		n.HcnPolicyArgs = append(n.HcnPolicyArgs, hcnLoopbackRoute)
+	} else {
+		hnsLoopbackRoute := policy{
+			Name: "EndpointPolicy",
+			Value: []byte(fmt.Sprintf(`{"Type": "OutBoundNAT", %s}`, value)),
+		}
+		n.Policies = append(n.Policies, hnsLoopbackRoute)
+	}
+}
+
+
+func (n *NetConf) ApplyOptionalArgs(ip *net.IP) {
+	if n.OptionalFlags.LoopbackDSR {
+		n.applyLoopbackDSR(ip)
+	}
 }
 
 // If runtime dns values are there use that else use cni conf supplied dns

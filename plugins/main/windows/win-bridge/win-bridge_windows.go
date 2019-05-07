@@ -39,7 +39,6 @@ type NetConf struct {
 	hns.NetConf
 
 	IPMasqNetwork string `json:"ipMasqNetwork,omitempty"`
-	ApiVersion    int    `json:"ApiVersion"`
 }
 
 func init() {
